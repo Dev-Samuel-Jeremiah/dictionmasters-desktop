@@ -1,0 +1,59 @@
+/* Added to every lesson page in the computer app (server.js). */
+
+/* Things that need the internet or an online account: search, the
+   notification bell, the account menu (sign out), Scan & Listen, the AI tutor,
+   logging in, buying. The app's own button (bottom right) replaces the menu. */
+.site-search, .px-iconbtn--search, .nb, [data-bell], .account-menu, .px-bar__login,
+[data-scan-open], .tool-btn--tutor, .px-switch-chip, #px-switch, .px-side__logout, .px-side__me, .master-banner, a[href^="/billing/"], a[href^="/accounts/register"],
+a[href*="/clash/"], [data-install-app], .pwa-install, [data-offline-download], .site-footer .footer-apps {
+  display: none !important;
+}
+
+.dm-fab {
+  position: fixed; right: 18px; top: 14px; z-index: 2147483000;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px 10px 12px; border: 0; border-radius: 999px;
+  background: #0B1A4A; color: #fff; font: 600 14px/1.2 system-ui, "Plus Jakarta Sans", sans-serif;
+  box-shadow: 0 8px 24px rgba(11, 26, 74, .28); cursor: pointer;
+}
+.dm-fab:hover { background: #005FE1; }
+.dm-fab__dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #FFC93C; color: #0B1A4A; font-weight: 800; }
+.dm-fab__new { width: 9px; height: 9px; border-radius: 50%; background: #2ECC71; margin-left: -2px; }
+
+.dm-panel {
+  position: fixed; right: 18px; top: 66px; z-index: 2147483001; width: min(360px, calc(100vw - 36px));
+  max-height: calc(100vh - 110px); overflow: auto;
+  background: #fff; color: #0B1A4A; border-radius: 18px; padding: 18px;
+  box-shadow: 0 18px 50px rgba(11, 26, 74, .3); font: 14px/1.45 system-ui, "Plus Jakarta Sans", sans-serif;
+}
+.dm-panel[hidden] { display: none; }
+.dm-panel h2 { margin: 0 0 2px; font-size: 18px; }
+.dm-panel small { color: #5B6785; }
+.dm-panel section { border-top: 1px solid #E6EAF4; margin-top: 14px; padding-top: 12px; }
+.dm-panel label { display: block; font-weight: 600; margin-bottom: 6px; }
+.dm-panel select, .dm-panel input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #C9D2E8; border-radius: 10px; font: inherit; }
+.dm-panel button.dm-btn {
+  margin-top: 8px; padding: 8px 14px; border: 0; border-radius: 10px; background: #005FE1; color: #fff; font: 600 14px/1.2 inherit; cursor: pointer;
+}
+.dm-panel button.dm-btn--quiet { background: #EEF2FB; color: #0B1A4A; }
+.dm-panel ul { margin: 6px 0 0; padding-left: 18px; }
+.dm-status { margin-top: 6px; color: #5B6785; }
+
+.dm-result {
+  margin: 0 0 18px; padding: 16px 18px; border-radius: 16px; font: 15px/1.45 system-ui, "Plus Jakarta Sans", sans-serif;
+  background: #FFF6DB; color: #5C4300; border: 2px solid #FFC93C;
+}
+.dm-result--passed { background: #E7F8EE; color: #0F5132; border-color: #2ECC71; }
+.dm-result strong { font-size: 20px; display: block; margin-bottom: 4px; }
+.dm-feedback { display: block; margin: 6px 0 0; padding: 6px 10px; border-radius: 10px; font: 600 13px/1.35 system-ui, sans-serif; }
+.dm-feedback--ok { background: #E7F8EE; color: #0F5132; }
+.dm-feedback--bad { background: #FDECEC; color: #842029; }
+.dm-feedback--wait { background: #EEF2FB; color: #0B1A4A; }
+
+.dm-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 2147483002;
+  background: #0B1A4A; color: #fff; padding: 10px 16px; border-radius: 12px; font: 14px/1.4 system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(11, 26, 74, .3);
+}
+
+@media print { .dm-fab, .dm-panel, .dm-toast { display: none !important; } }

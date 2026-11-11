@@ -1,0 +1,28 @@
+{
+  "name": "diction-masters-offline",
+  "productName": "Diction Masters",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Diction Masters for Windows and Linux, with every lesson on the computer. Works without the internet.",
+  "author": "Techmiary Technology Concepts <sales@techmiary.cloud>",
+  "homepage": "https://www.dictionmasters.app",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "content:fetch": "node scripts/fetch-content.js",
+    "content:local": "node scripts/fetch-content.js --from-folder",
+    "dist:win": "electron-builder --config electron-builder.config.js --publish never --win",
+    "dist:win7": "cross-env DM_LEGACY=1 electron-builder --config electron-builder.config.js --publish never --win",
+    "dist:linux": "electron-builder --config electron-builder.config.js --publish never --linux"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^45.3.0",
+    "electron-builder": "^26.18.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "desktopName": "diction-masters-offline.desktop"
+}

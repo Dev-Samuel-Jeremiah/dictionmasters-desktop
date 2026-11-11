@@ -1,0 +1,24 @@
+{
+  "_readme": "THE ONE FILE TO EDIT. See README.md.",
+
+  "appName": "Diction Masters",
+  "appId": "app.dictionmasters.offline",
+
+  "_version_readme": "Raise when you publish a new app (new screens, fixes). New LESSONS don't need a new version: installed apps download them from the website.",
+  "version": "1.0.0",
+
+  "_site_readme": "The website the app activates against and downloads new lessons from.",
+  "siteUrl": "https://www.dictionmasters.app",
+
+  "_publicKey_readme": "Filled in by `npm run content:fetch` from <siteUrl>/desktop-app/public-key/. The app trusts only licences signed by the website's matching private key.",
+  "publicKey": "",
+
+  "_sync_readme": "How often a running app checks for new lessons when the internet is there, in hours.",
+  "syncHours": 6,
+
+  "colors": { "brand": "#005FE1", "titleBar": "#0B1A4A" },
+  "window": { "width": 1280, "height": 820, "minWidth": 380, "minHeight": 560 },
+
+  "_capture_readme": "true = screenshots and screen recording show the app as black (Windows; Linux can't).",
+  "blockScreenCapture": true
+}

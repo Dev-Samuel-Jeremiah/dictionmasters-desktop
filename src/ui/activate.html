@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en-gb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diction Masters</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; color: #0B1A4A;
+         background: radial-gradient(1200px 600px at 10% -10%, #2C6BFF33, transparent), linear-gradient(160deg, #0B1A4A, #123A9C);
+         font: 16px/1.5 system-ui, "Plus Jakarta Sans", sans-serif; }
+  .card { width: min(480px, calc(100vw - 32px)); padding: 32px; background: #fff; border-radius: 24px; box-shadow: 0 30px 80px rgba(0,0,0,.35); }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .brand img { width: 52px; height: 52px; border-radius: 14px; }
+  .brand b { font-size: 20px; display: block; }
+  .brand span { color: #5B6785; font-size: 14px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p { color: #45507A; margin: 0 0 18px; }
+  label { display: block; font-weight: 600; margin: 14px 0 6px; }
+  input, select { width: 100%; padding: 12px 14px; border: 2px solid #C9D2E8; border-radius: 12px; font: inherit; }
+  input:focus, select:focus { outline: none; border-color: #005FE1; }
+  #code { font: 600 20px/1.2 ui-monospace, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+  button { margin-top: 20px; width: 100%; padding: 13px; border: 0; border-radius: 12px; background: #005FE1; color: #fff; font: 700 16px/1.2 inherit; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: progress; }
+  button.quiet { background: #EEF2FB; color: #0B1A4A; }
+  .error { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #FDECEC; color: #842029; }
+  .note { margin-top: 14px; font-size: 14px; color: #5B6785; }
+  [hidden] { display: none !important; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+  dt { color: #5B6785; } dd { margin: 0; font-weight: 600; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <img src="/_desktop/logo.png" alt="">
+      <div><b>Diction Masters</b><span>British English, on this computer</span></div>
+    </div>
+
+    <form id="activate" hidden>
+      <h1>Welcome!</h1>
+      <p id="lead">Type the activation code you were given. You need the internet just this once: after that, every lesson works without it.</p>
+      <label for="code">Activation code</label>
+      <input id="code" name="code" placeholder="DM-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" required>
+      <label for="learner">Learner's name <span style="font-weight:400;color:#5B6785">(shown on the lessons)</span></label>
+      <input id="learner" name="learner" maxlength="60" autocomplete="name">
+      <button type="submit" id="go">Activate</button>
+      <div class="error" id="error" role="alert" hidden></div>
+      <div class="note">No code yet? Contact Diction Masters: sales@techmiary.cloud</div>
+    </form>
+
+    <form id="level" hidden>
+      <h1>Choose the level</h1>
+      <p>Your code opens several levels. Which one is this learner on? You can change it any time.</p>
+      <label for="level-choice">Level</label>
+      <select id="level-choice"></select>
+      <button type="submit">Start learning</button>
+    </form>
+
+    <section id="manage" hidden>
+      <h1>This computer</h1>
+      <dl id="details"></dl>
+      <button type="button" id="back">Back to my lessons</button>
+      <button type="button" class="quiet" id="remove">Use a different code…</button>
+      <div class="note">To move this code to another computer, ask Diction Masters to free its seat.</div>
+    </section>
+  </main>
+<script src="/_desktop/activate.js"></script>
+</body>
+</html>

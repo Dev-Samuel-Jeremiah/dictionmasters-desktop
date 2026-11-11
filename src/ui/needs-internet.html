@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en-gb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This needs the internet · Diction Masters</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F4F7FD; color: #0B1A4A;
+         font: 16px/1.5 system-ui, "Plus Jakarta Sans", sans-serif; }
+  .card { max-width: 480px; margin: 24px; padding: 32px; background: #fff; border-radius: 22px; box-shadow: 0 18px 50px rgba(11,26,74,.12); text-align: center; }
+  .icon { font-size: 48px; }
+  h1 { font-size: 24px; margin: 8px 0; }
+  p { color: #45507A; }
+  .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+  a { display: inline-block; padding: 10px 18px; border-radius: 12px; text-decoration: none; font-weight: 600; }
+  .primary { background: #005FE1; color: #fff; }
+  .quiet { background: #EEF2FB; color: #0B1A4A; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon" aria-hidden="true">🌐</div>
+    <h1>This needs the internet</h1>
+    <p>{{why}}</p>
+    <div class="row">
+      <a class="primary" href="{{home}}">Back to my lessons</a>
+      <a class="quiet" href="{{online}}" data-online>Open it on the website</a>
+    </div>
+  </div>
+</body>
+</html>

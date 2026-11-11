@@ -1,0 +1,125 @@
+# Builds the offline installers on GitHub's computers, with every lesson inside.
+# See README.md, "Publishing the installers".
+#
+# Run it: Actions > "Build installers" > Run workflow. Also runs on every push to main.
+#
+#   1. Lessons   downloads the newest lessons release from the website, once
+#                (secret DM_BUILD_TOKEN = the website's DESKTOP_BUILD_TOKEN)
+#   2. Build     Windows 10/11, Windows 7/8 (Electron 22) and Linux, each on its own system
+#   3. Publish   (main only) the files on the Releases page, tag "offline":
+#                https://github.com/<owner>/<repo>/releases/download/offline/<file>
+#
+# Repository settings (Settings > Secrets and variables > Actions):
+#   secret   DM_BUILD_TOKEN       required
+#   variable DM_SITE_URL          optional, default: siteUrl in app.config.json
+#   variable DM_SKIP_VIDEOS       optional, "1" = leave videos out of the installers
+#                                 (needed if the lessons are over ~1.8 GB: Windows
+#                                 installers can't be bigger than 2 GB). Each computer
+#                                 then downloads its own level's videos after activating.
+#   secret   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   optional Windows code signing
+name: Build installers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DM_RELEASE: "1"
+  DM_SITE_URL: ${{ vars.DM_SITE_URL }}
+  DM_SKIP_VIDEOS: ${{ vars.DM_SKIP_VIDEOS }}
+
+jobs:
+  lessons:
+    name: Download the lessons
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - name: Fetch the newest release from the website
+        env:
+          DM_BUILD_TOKEN: ${{ secrets.DM_BUILD_TOKEN }}
+        run: node scripts/fetch-content.js
+      - uses: actions/upload-artifact@v5
+        with:
+          name: lessons
+          path: |
+            content/
+            app.config.json
+          retention-days: 3
+          compression-level: 0      # already sealed media; compressing again only wastes time
+
+  build:
+    name: ${{ matrix.name }}
+    needs: lessons
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows 10 and 11, os: windows-latest, target: --win, legacy: "" }
+          - { name: Windows 7 and 8, os: windows-latest, target: --win, legacy: "1" }
+          - { name: Linux, os: ubuntu-24.04, target: --linux, legacy: "" }
+    defaults:
+      run: { shell: bash }
+    env:
+      DM_LEGACY: ${{ matrix.legacy }}
+      SIGN_LINK: ${{ startsWith(matrix.os, 'windows') && secrets.WIN_CSC_LINK || '' }}
+      SIGN_PASSWORD: ${{ startsWith(matrix.os, 'windows') && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/download-artifact@v5
+        with: { name: lessons, path: . }
+      - run: npm ci
+      - run: npm test
+      - name: Build
+        run: |
+          if [ -n "$SIGN_LINK" ]; then export CSC_LINK="$SIGN_LINK" CSC_KEY_PASSWORD="$SIGN_PASSWORD"; fi
+          npx electron-builder --config electron-builder.config.js --publish never ${{ matrix.target }}
+      - name: Collect the files
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          shopt -s nullglob
+          for f in dist/*.exe dist/*.AppImage dist/*.deb; do cp "$f" "$RUNNER_TEMP/out/"; done
+          ls -la "$RUNNER_TEMP/out"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: installer-${{ matrix.os }}-${{ matrix.legacy == '1' && 'legacy' || 'normal' }}
+          path: ${{ runner.temp }}/out/*
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish on the Releases page
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with: { pattern: installer-*, path: out, merge-multiple: true }
+      - name: Version
+        run: echo "APP_VERSION=$(node -p "require('./app.config.json').version")" >> "$GITHUB_ENV"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: offline
+          name: Diction Masters offline ${{ env.APP_VERSION }}
+          make_latest: false
+          files: out/*
+          body: |
+            Diction Masters for Windows and Linux, with every lesson inside. Needs an activation code.
+            Windows 10/11: DictionMasters-Offline-Setup.exe · Windows 7/8: DictionMasters-Offline-Setup-Windows7-8.exe
+            Ubuntu/Debian: DictionMasters-Offline-linux-amd64.deb · Other Linux: DictionMasters-Offline-linux-x86_64.AppImage
