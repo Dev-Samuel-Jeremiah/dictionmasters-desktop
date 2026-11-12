@@ -33,7 +33,7 @@ const OUT = path.join(ROOT, "content");
 const CONFIG = path.join(ROOT, "app.config.json");
 const config = JSON.parse(fs.readFileSync(CONFIG, "utf8"));
 const SITE = (process.env.DM_SITE_URL || config.siteUrl).replace(/\/+$/, "");
-const TOKEN = process.env.DM_BUILD_TOKEN || "";
+const TOKEN = (process.env.DM_BUILD_TOKEN || "").trim();      // a pasted secret often carries a space or newline
 const PARALLEL = 6;
 const VIDEOS = path.join(ROOT, "videos");
 const LEVEL = (process.env.DM_LEVEL || "").trim();
@@ -106,7 +106,13 @@ async function fromWebsite() {
   const headers = { "X-DM-Build-Token": TOKEN, Accept: "application/json" };
   const key = await (await get(`${SITE}/desktop-app/public-key/`, {})).json();
   setPublicKey(key.public_key);
-  const manifest = await (await get(`${SITE}/desktop-app/content/latest/`, headers)).json();
+  const answer = await fetch(`${SITE}/desktop-app/content/latest/`, { headers });
+  if (answer.status === 403) {
+    console.error(`${SITE} refused the build token. DM_BUILD_TOKEN (a GitHub secret here) must be exactly the website's ` +
+      "DESKTOP_BUILD_TOKEN: no spaces, quotes or backticks around it.");
+    process.exit(1);
+  }
+  const manifest = await (answer.ok ? answer : await get(`${SITE}/desktop-app/content/latest/`, headers)).json();
   if (!manifest.ok || !manifest.release) {
     console.error("The website has no lessons release yet. Build one: /admin/ > Lessons releases > Add, or `manage.py export_desktop_content`.");
     process.exit(1);
