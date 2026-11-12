@@ -5,7 +5,8 @@
    logging in, buying. The app's own button (bottom right) replaces the menu. */
 .site-search, .px-iconbtn--search, .nb, [data-bell], .account-menu, .px-bar__login,
 [data-scan-open], .tool-btn--tutor, .px-switch-chip, #px-switch, .px-side__logout, .px-side__me, .master-banner, a[href^="/billing/"], a[href^="/accounts/register"],
-a[href*="/clash/"], [data-install-app], .pwa-install, [data-offline-download], .site-footer .footer-apps {
+a[href*="/clash/"], [data-install-app], .pwa-install, [data-offline-download], .site-footer .footer-apps,
+[data-offline-bar], .vid__manage-devices {   /* a lesson video's "Save for offline": here it's on the computer already */
   display: none !important;
 }
 
