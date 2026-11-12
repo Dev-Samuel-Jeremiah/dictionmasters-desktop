@@ -60,7 +60,7 @@ class State {
 
   /** Forget the licence (a different code, or the website stopped this one). */
   forgetLicence() {
-    for (const name of ["licence", "signature", "keys", "keysLocked", "lastCheck"]) delete this.data[name];
+    for (const name of ["licence", "signature", "keys", "keysLocked", "lastCheck", "unlock"]) delete this.data[name];
     this.save();
   }
 }

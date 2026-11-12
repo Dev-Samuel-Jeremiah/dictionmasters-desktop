@@ -28,6 +28,12 @@
   [hidden] { display: none !important; }
   dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
   dt { color: #5B6785; } dd { margin: 0; font-weight: 600; }
+  .computer { margin: 4px 0 6px; padding: 16px; border-radius: 16px; background: #EEF2FB; text-align: center; }
+  .computer small { display: block; color: #45507A; font-weight: 600; }
+  .computer strong { display: block; margin: 4px 0 8px; font: 800 34px/1.1 ui-monospace, Consolas, monospace; letter-spacing: .12em; color: #0B1A4A; }
+  .computer button { width: auto; margin: 0; padding: 8px 16px; font-size: 14px; }
+  .steps { margin: 12px 0 0; padding-left: 20px; color: #45507A; }
+  .steps li { margin: 4px 0; }
 </style>
 </head>
 <body>
@@ -39,14 +45,23 @@
 
     <form id="activate" hidden>
       <h1>Welcome!</h1>
-      <p id="lead">Type the activation code you were given. You need the internet just this once: after that, every lesson works without it.</p>
-      <label for="code">Activation code</label>
-      <input id="code" name="code" placeholder="DM-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" required>
+      <div class="computer">
+        <small>This computer's number</small>
+        <strong id="computer">…</strong>
+        <button type="button" class="quiet" id="copy">Copy the number</button>
+      </div>
+      <ol class="steps" id="lead">
+        <li>Send this number to Diction Masters<span id="contact"></span>.</li>
+        <li>You'll get an unlock code made for this computer.</li>
+        <li>Type it below. No internet is needed, now or later.</li>
+      </ol>
+      <label for="code">Unlock code</label>
+      <input id="code" name="code" placeholder="DM-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" required>
       <label for="learner">Learner's name <span style="font-weight:400;color:#5B6785">(shown on the lessons)</span></label>
       <input id="learner" name="learner" maxlength="60" autocomplete="name">
-      <button type="submit" id="go">Activate</button>
+      <button type="submit" id="go">Unlock</button>
       <div class="error" id="error" role="alert" hidden></div>
-      <div class="note">No code yet? Contact Diction Masters: sales@techmiary.cloud</div>
+      <div class="note">The code works on this computer only. Each computer has its own number.</div>
     </form>
 
     <form id="level" hidden>
@@ -61,8 +76,9 @@
       <h1>This computer</h1>
       <dl id="details"></dl>
       <button type="button" id="back">Back to my lessons</button>
+      <button type="button" class="quiet" id="videos">Load videos from a folder…</button>
       <button type="button" class="quiet" id="remove">Use a different code…</button>
-      <div class="note">To move this code to another computer, ask Diction Masters to free its seat.</div>
+      <div class="note">Moving to another computer? It has its own number: ask Diction Masters for a code for it.</div>
     </section>
   </main>
 <script src="/_desktop/activate.js"></script>

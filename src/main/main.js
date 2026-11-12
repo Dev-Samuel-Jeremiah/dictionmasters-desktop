@@ -32,6 +32,7 @@ const { Progress } = require("./progress");
 const { State } = require("./state");
 const { Sync } = require("./sync");
 const licence = require("./licence");
+const unlocking = require("./unlock");
 const netApi = require("./net");
 
 const SCHEME = "dm";
@@ -70,13 +71,56 @@ function installedDir() {
   return app.isPackaged ? path.join(process.resourcesPath, "content") : path.join(__dirname, "..", "..", "content");
 }
 
+// This computer's own id, behind the number it shows for its unlock code:
+// Windows' MachineGuid (64-bit view, so the Windows 7/8 32-bit build reads
+// the same one), Linux's machine-id. It stays the same when the app is
+// reinstalled. If neither can be read, the app's own id (lost on reinstall).
+let computerMemo = null;
+function computer() {
+  if (computerMemo) return computerMemo;
+  let id = process.env.DM_MACHINE_ID || "";
+  try {
+    if (!id && process.platform === "win32") {
+      const out = require("child_process").execFileSync("reg",
+        ["query", "HKLM\\SOFTWARE\\Microsoft\\Cryptography", "/v", "MachineGuid", "/reg:64"], { encoding: "utf8", windowsHide: true });
+      id = (out.match(/MachineGuid\s+REG_SZ\s+(\S+)/) || [])[1] || "";
+    }
+    if (!id) {
+      for (const file of ["/etc/machine-id", "/var/lib/dbus/machine-id"]) {
+        if (fs.existsSync(file)) { id = fs.readFileSync(file, "utf8").trim(); if (id) break; }
+      }
+    }
+  } catch (error) { /* fall back below */ }
+  computerMemo = unlocking.computerNumber(id || state.get("deviceId"));
+  return computerMemo;
+}
+
 function publicKey() {
   return process.env.DM_PUBLIC_KEY || config.publicKey || state.get("devPublicKey") || "";
 }
 
 // --------------------------------------------------------------- who and what
 
+/** A computer unlocked with no internet: its code's level and end date. The
+ *  computer's clock can't be wound back past the latest day the app has seen. */
+function unlockedStanding() {
+  const found = state.get("unlock");
+  if (found.computer !== computer()) {
+    return { ok: false, reason: "device", message: "This unlock code was made for another computer. Please ask for a code for this one." };
+  }
+  const today = licence.today();
+  const seen = state.get("lastDay") || today;
+  const day = today > seen ? today : seen;
+  const payload = { code: found.code, holder: "", levels: [found.level], until: found.until, device: found.computer };
+  if (found.until && day > found.until) {
+    return { ok: false, reason: "ended", payload,
+             message: `Your unlock code ended on ${found.until}. Please contact Diction Masters for a new one.` };
+  }
+  return { ok: true, payload };
+}
+
 function standing() {
+  if (state.get("unlock")) return unlockedStanding();
   return licence.standing({ licence: state.get("licence"), signature: state.get("signature"), lastCheck: state.get("lastCheck") },
     state.get("deviceId"), publicKey());
 }
@@ -112,7 +156,8 @@ function statusFor() {
     learner: s.learner, level: s.level, levels: s.levels, home: content.home(s.level),
     code: payload.code || state.get("code") || "", holder: payload.holder || "", until: payload.until || "",
     release: content.release, lessonsDate: content.manifest && content.manifest.built ? content.manifest.built.slice(0, 10) : "",
-    appVersion: APP_VERSION, deviceName: os.hostname(),
+    appVersion: APP_VERSION, deviceName: os.hostname(), computer: unlocking.showComputer(computer()),
+    unlocked: Boolean(state.get("unlock")), contact: config.contact || "",
     sync: sync.status.message, ready: sync.status.ready,
     progress: progress.summary(),
   };
@@ -216,6 +261,7 @@ function buildMenu() {
     { label: "Help", submenu: [
       { label: "Check for new lessons", click: () => sync.run() },
       { label: "Change level…", click: go("/_desktop/activate.html?level=1") },
+      { label: "Load videos from a folder…", click: () => chooseVideos() },
       { label: "Code and computer…", click: go("/_desktop/activate.html?manage=1") },
       { type: "separator" },
       { label: "Open my recordings folder", click: () => { const dir = path.join(app.getPath("userData"), "recordings"); fs.mkdirSync(dir, { recursive: true }); shell.openPath(dir); } },
@@ -236,6 +282,20 @@ function wireIpc() {
 
   ipcMain.handle("dm:activate", async (_event, { code, learner }) => {
     if (learner != null) state.set({ learner: String(learner).trim().slice(0, 60) });
+    // An unlock code: checked right here, with no internet.
+    if (unlocking.looksLikeCode(code)) {
+      const opened = unlocking.unlock(code, computer(), content.manifest);
+      if (!opened.ok) return { ok: false, error: opened.error };
+      state.set({ unlock: { code: String(code).toUpperCase().trim(), level: opened.level, until: opened.until, computer: computer() },
+                  level: opened.level });
+      state.keys = opened.keys;
+      content.setKeys(opened.keys);
+      setTimeout(() => sync.run(), 1500);           // only does anything if this computer is ever online
+      const status = statusFor();
+      if (!status.ok) return { ok: false, error: status.message };
+      setTimeout(offerVideos, 800);
+      return { ok: true, status };
+    }
     try {
       if (!publicKey() && !app.isPackaged) {
         const { data } = await netApi.json(net, { url: `${SITE}/desktop-app/public-key/` });   // testing only
@@ -269,6 +329,82 @@ function wireIpc() {
   ipcMain.handle("dm:set-learner", (_event, name) => { state.set({ learner: String(name || "").trim().slice(0, 60) }); return true; });
   ipcMain.handle("dm:check-now", async () => { await sync.run(); return statusFor(); });
   ipcMain.handle("dm:deactivate", () => { state.forgetLicence(); content.setKeys({}); return true; });
+  ipcMain.handle("dm:load-videos", () => chooseVideos());
+}
+
+// ------------------------------------------------------------------- videos
+//
+// A level's videos are too big to go inside its installer (Windows installers
+// stop at 2 GB), so they travel beside it, in a videos/ folder. The Windows
+// installer copies them in (build/installer.nsh); otherwise they're loaded
+// from that folder here, into the app's own lessons folder. Only files the
+// lessons on this computer actually use are copied, and nothing is changed
+// in them: they're sealed, and still open only with this computer's code.
+
+function missingVideos() {
+  if (!content.manifest) return new Set();
+  // The learner's level once unlocked; before that, every level installed here.
+  const level = currentSession().level;
+  const levels = level ? [level] : content.levels;
+  const wanted = new Set();
+  for (const group of levels.map((name) => content.manifest.levels[name])) {
+    for (const entry of Object.values((group && group.files) || {})) {
+      if (/^video\//.test(entry.t || "") && !content.has(entry.b)) wanted.add(entry.b);
+    }
+  }
+  return wanted;
+}
+
+let importing = null;
+function importVideos(dir, { quiet } = {}) {
+  if (importing) return importing;
+  importing = (async () => {
+    const wanted = missingVideos();
+    let names = [];
+    try { names = fs.readdirSync(dir).filter((name) => wanted.has(name)); } catch (error) { names = []; }
+    if (!names.length) return { copied: 0, missing: wanted.size };
+    const target = path.join(app.getPath("userData"), "content", "blobs");
+    fs.mkdirSync(target, { recursive: true });
+    let copied = 0;
+    for (const name of names) {
+      sync._set({ busy: true, message: `Copying videos: ${copied + 1} of ${names.length}…` });
+      await fs.promises.copyFile(path.join(dir, name), path.join(target, `${name}.part`));
+      await fs.promises.rename(path.join(target, `${name}.part`), path.join(target, name));
+      copied += 1;
+    }
+    const left = missingVideos().size;
+    sync._set({ busy: false, message: left ? `${copied} videos loaded. ${left} are still missing.` : "All the videos are on this computer." });
+    if (!quiet && win) dialog.showMessageBox(win, { type: "info", title: config.appName,
+      message: left ? `${copied} videos loaded; ${left} still missing.` : `All ${copied} videos are loaded. They play with no internet.` });
+    return { copied, missing: left };
+  })().finally(() => { importing = null; });
+  return importing;
+}
+
+async function chooseVideos() {
+  if (!missingVideos().size) {
+    if (win) dialog.showMessageBox(win, { type: "info", title: config.appName, message: "All this level's videos are already on this computer." });
+    return { copied: 0, missing: 0 };
+  }
+  const picked = await dialog.showOpenDialog(win, {
+    title: "Choose the videos folder (on the flash drive, next to the installer)",
+    properties: ["openDirectory"],
+  });
+  if (picked.canceled || !picked.filePaths.length) return { copied: 0, missing: missingVideos().size };
+  let dir = picked.filePaths[0];
+  if (fs.existsSync(path.join(dir, "videos"))) dir = path.join(dir, "videos");      // they picked the level's folder
+  return importVideos(dir);
+}
+
+// Straight after unlocking: if this level's videos aren't here yet, offer to load them.
+async function offerVideos() {
+  if (!win || !missingVideos().size) return;
+  const { response } = await dialog.showMessageBox(win, {
+    type: "question", title: config.appName, buttons: ["Load videos now", "Later"], defaultId: 0, cancelId: 1,
+    message: "This level's videos aren't on this computer yet.",
+    detail: "They're in the videos folder next to the installer (on the flash drive). Load them now? You can also do it later from Help.",
+  });
+  if (response === 0) chooseVideos();
 }
 
 // ------------------------------------------------------------------ starting
@@ -296,9 +432,18 @@ app.whenReady().then(() => {
   buildMenu();
   createWindow();
 
-  // New lessons: a little after starting, then every few hours.
-  if (state.get("licence")) setTimeout(() => sync.run(), 10000);
-  setInterval(() => { if (state.get("licence")) sync.run(); }, Math.max(1, config.syncHours) * 3600 * 1000);
+  // The latest day this computer has shown, so winding the clock back
+  // doesn't stretch an unlock code's end date.
+  const today = licence.today();
+  if (!state.get("lastDay") || today > state.get("lastDay")) state.set({ lastDay: today });
+
+  // Videos sitting next to the app (a Linux AppImage copied with its videos/ folder).
+  if (process.env.APPIMAGE) importVideos(path.join(path.dirname(process.env.APPIMAGE), "videos"), { quiet: true });
+
+  // New lessons: a little after starting, then every few hours (only if online).
+  const linked = () => state.get("licence") || state.get("unlock");
+  if (linked()) setTimeout(() => sync.run(), 10000);
+  setInterval(() => { if (linked()) sync.run(); }, Math.max(1, config.syncHours) * 3600 * 1000);
 });
 
 app.on("before-quit", () => progress && progress.flush());

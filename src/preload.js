@@ -15,6 +15,7 @@ if (location.protocol === "dm:") {
     setLearner: (name) => ipcRenderer.invoke("dm:set-learner", name),
     checkNow: () => ipcRenderer.invoke("dm:check-now"),
     deactivate: () => ipcRenderer.invoke("dm:deactivate"),
+    loadVideos: () => ipcRenderer.invoke("dm:load-videos"),
     onSync: (listener) => ipcRenderer.on("dm:sync", (_event, status) => listener(status)),
   });
 }

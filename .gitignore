@@ -3,3 +3,5 @@ dist/
 content/*
 !content/README.md
 *.log
+videos/
+bundles/

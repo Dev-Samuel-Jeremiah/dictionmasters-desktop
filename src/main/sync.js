@@ -44,10 +44,16 @@ class Sync {
   }
 
   async checkIn() {
-    if (!this.state.get("licence")) return { ok: false };
+    const unlocked = this.state.get("unlock");
+    if (!this.state.get("licence") && !unlocked) return { ok: false };
+    // A computer unlocked with no internet, online at last: its number and
+    // code stand in for the licence (the website answers with one).
+    const sent = this.state.get("licence")
+      ? { licence: this.state.get("licence"), signature: this.state.get("signature") }
+      : { computer: unlocked.computer, unlock: unlocked.code };
     const { status, data } = await net.json(this.requester, {
       url: `${this.site}/desktop-app/check/`, method: "POST",
-      data: { licence: this.state.get("licence"), signature: this.state.get("signature"), release: this.content.release, app_version: this.appVersion },
+      data: { ...sent, release: this.content.release, app_version: this.appVersion },
     });
     if (data && data.ok) {
       this.state.set({ licence: data.licence, signature: data.signature, lastCheck: Date.now() });

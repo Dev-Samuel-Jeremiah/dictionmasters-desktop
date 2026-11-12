@@ -14,7 +14,9 @@ const path = require("path");
 const config = require("./app.config.json");
 
 const legacy = process.env.DM_LEGACY === "1";
-const name = "DictionMasters-Offline";
+// One installer per level (DM_LEVEL, scripts/fetch-content.js): its name says which.
+const level = (process.env.DM_LEVEL || "").trim();
+const name = level ? `DictionMasters-${level.replace(/[^A-Za-z0-9]+/g, "-")}` : "DictionMasters-Offline";
 
 if (process.env.DM_RELEASE === "1") {
   if (!config.publicKey) throw new Error("app.config.json has no publicKey. Run `npm run content:fetch` first.");
@@ -52,6 +54,7 @@ module.exports = {
     runAfterFinish: true,
     deleteAppDataOnUninstall: false,     // keep progress if they reinstall
     differentialPackage: false,
+    include: "build/installer.nsh",      // copies the level's videos from the folder beside the installer
   },
 
   linux: {

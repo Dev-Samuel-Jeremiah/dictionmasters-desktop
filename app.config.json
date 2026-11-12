@@ -13,6 +13,9 @@
   "_publicKey_readme": "Filled in by `npm run content:fetch` from <siteUrl>/desktop-app/public-key/. The app trusts only licences signed by the website's matching private key.",
   "publicKey": "",
 
+  "_contact_readme": "How schools reach you for an unlock code, shown next to the computer's number, e.g. \"WhatsApp 0803 000 0000\". Empty: not shown.",
+  "contact": "",
+
   "_sync_readme": "How often a running app checks for new lessons when the internet is there, in hours.",
   "syncHours": 6,
 
