@@ -1,40 +1,47 @@
-# Builds the offline installers on GitHub's computers, with every lesson inside.
+# Builds one level's offline installers on GitHub's computers.
 # See README.md, "Publishing the installers".
 #
-# Run it: Actions > "Build installers" > Run workflow. Also runs on every push to main.
+# Run it: Actions > "Build installers" > Run workflow, and type the level.
 #
-#   1. Lessons   downloads the newest lessons release from the website, once
+# A level with its videos is too big for one installer (Windows installers stop
+# at 2 GB), so each level gets its own installers with its pages, pictures and
+# recordings inside, and its videos travel beside them in a videos/ folder. The
+# website puts the two together into one zip per level for flash drives (its
+# /admin/ -> "Offline app downloads"), reading the videos from the release.
+#
+#   1. Lessons   downloads that level's newest lessons from the website, no videos
 #                (secret DM_BUILD_TOKEN = the website's DESKTOP_BUILD_TOKEN)
 #   2. Build     Windows 10/11, Windows 7/8 (Electron 22) and Linux, each on its own system
 #   3. Publish   (main only) the files on the Releases page, tag "offline":
 #                https://github.com/<owner>/<repo>/releases/download/offline/<file>
+#                e.g. DictionMasters-Level-1-Setup.exe
 #
 # Repository settings (Settings > Secrets and variables > Actions):
 #   secret   DM_BUILD_TOKEN       required
 #   variable DM_SITE_URL          optional, default: siteUrl in app.config.json
-#   variable DM_SKIP_VIDEOS       optional, "1" = leave videos out of the installers
-#                                 (needed if the lessons are over ~1.8 GB: Windows
-#                                 installers can't be bigger than 2 GB). Each computer
-#                                 then downloads its own level's videos after activating.
 #   secret   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   optional Windows code signing
 name: Build installers
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
+    inputs:
+      level:
+        description: 'The level, as the website names it, e.g. "Level 1" or "Pre-Level"'
+        required: true
+        default: Level 1
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-${{ github.ref }}
+  group: build-${{ github.ref }}-${{ inputs.level }}
   cancel-in-progress: true
 
 env:
   DM_RELEASE: "1"
   DM_SITE_URL: ${{ vars.DM_SITE_URL }}
-  DM_SKIP_VIDEOS: ${{ vars.DM_SKIP_VIDEOS }}
+  DM_LEVEL: ${{ inputs.level }}
+  DM_SKIP_VIDEOS: "1"          # the videos travel beside the installers (the website's zip)
 
 jobs:
   lessons:
@@ -56,6 +63,17 @@ jobs:
             app.config.json
           retention-days: 3
           compression-level: 0      # already sealed media; compressing again only wastes time
+      # The level's list, published beside its installers: the website packs
+      # exactly the videos these installers expect into the level's zip.
+      - name: The level's list
+        run: |
+          mkdir -p list
+          cp content/manifest.json "list/DictionMasters-$(echo "$DM_LEVEL" | sed -E 's/[^A-Za-z0-9]+/-/g')-manifest.json"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: installer-list
+          path: list/*
+          retention-days: 3
 
   build:
     name: ${{ matrix.name }}
@@ -120,6 +138,6 @@ jobs:
           make_latest: false
           files: out/*
           body: |
-            Diction Masters for Windows and Linux, with every lesson inside. Needs an activation code.
-            Windows 10/11: DictionMasters-Offline-Setup.exe · Windows 7/8: DictionMasters-Offline-Setup-Windows7-8.exe
-            Ubuntu/Debian: DictionMasters-Offline-linux-amd64.deb · Other Linux: DictionMasters-Offline-linux-x86_64.AppImage
+            Diction Masters for Windows and Linux, one level per installer. Each needs that level's
+            videos/ folder beside it and an unlock code made for the computer. Schools get them as one
+            zip per level from the website, not from here.
