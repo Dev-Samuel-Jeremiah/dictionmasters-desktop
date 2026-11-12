@@ -1,10 +1,11 @@
 # Diction Masters — offline app for Windows and Linux
 
-The computer app that installs **with every lesson on the computer** (like
-Microsoft Office) and works with **no internet**. A learner or school types an
-**activation code** once (the internet is needed just then); after that every
-lesson opens offline. When the computer is online, it quietly downloads new
-and changed lessons from the website.
+The computer app that installs **with a level's lessons on the computer** (like
+Microsoft Office) and works with **no internet, ever**. A school installs a level
+from a flash drive; the app shows the computer's **number**; Diction Masters sends
+back that computer's **unlock code**; it's typed in once, and every lesson and
+video opens. If the computer is ever online, it quietly downloads new and changed
+lessons from the website.
 
 This project is separate from the website. The website only has a small
 add-on for it: `apps/desktop_edition` in the Django project (codes, licences,
@@ -50,37 +51,41 @@ Chart. Recordings and videos play from the computer. Read-along highlighting wor
 
 ## Publishing the installers (on GitHub, no Windows PC needed)
 
-One-time setup, on the **website** (see its `DESKTOP_EDITION_GUIDE.md`):
-make the keys (`manage.py desktop_keys`), set `DESKTOP_BUILD_TOKEN`, and build
-the first lessons release.
+A level with its videos is bigger than a Windows installer can be (2 GB), so
+**each level has its own installers** (pages, pictures and recordings inside)
+and its **videos travel beside them** in a `videos` folder. The website packs
+both into one zip per level for flash drives.
 
-One-time setup, in **this repository**: Settings → Secrets and variables → Actions:
+One-time setup, on the **website** (its `DESKTOP_EDITION_GUIDE.md`): the keys
+(`manage.py desktop_keys`), `DESKTOP_BUILD_TOKEN`, and a lessons release.
+In **this repository**: Settings → Secrets and variables → Actions → secret
+**`DM_BUILD_TOKEN`**, the same value as the website's `DESKTOP_BUILD_TOKEN`.
 
-- secret **`DM_BUILD_TOKEN`**: the same value as the website's `DESKTOP_BUILD_TOKEN`.
-- variable **`DM_SKIP_VIDEOS`** = `1` *only if* the lessons are bigger than
-  about 1.8 GB (Windows installers can't pass 2 GB). Then each computer
-  downloads its own level's videos after it's activated.
-
-Then: **Actions → Build installers → Run workflow** (it also runs on every push
-to `main`). In about 15 minutes the Releases page (tag `offline`) has:
+For each level: **Actions → Build installers → Run workflow**, type the level
+(e.g. `Level 1`). In about 20 minutes the Releases page (tag `offline`) has:
 
 | Computer | File |
 |---|---|
-| Windows 10 and 11 | `DictionMasters-Offline-Setup.exe` |
-| Windows 7, 8, 8.1 (32/64-bit) | `DictionMasters-Offline-Setup-Windows7-8.exe` |
-| Ubuntu, Debian, Mint, Zorin | `DictionMasters-Offline-linux-amd64.deb` |
-| Other Linux | `DictionMasters-Offline-linux-x86_64.AppImage` |
+| Windows 10 and 11 | `DictionMasters-Level-1-Setup.exe` |
+| Windows 7, 8, 8.1 (32/64-bit) | `DictionMasters-Level-1-Setup-Windows7-8.exe` |
+| Ubuntu, Debian, Mint, Zorin | `DictionMasters-Level-1-linux-amd64.deb` |
+| Other Linux | `DictionMasters-Level-1-linux-x86_64.AppImage` |
+| (the website reads this) | `DictionMasters-Level-1-manifest.json` |
 
-Re-run it whenever you want **new installers** to carry the newest lessons.
-Computers already installed don't need it: they download new lessons themselves.
+Then on the website: `/admin/` → *Offline app downloads* → *Add* → the level.
+It makes `Diction-Masters-Level-1.zip`: the installers (friendly names), the
+level's `videos` folder and a READ ME. Unzip it onto a flash drive; any computer
+installs from it. The Windows installer copies the videos in
+(`build/installer.nsh`); on Linux the app loads them from beside an AppImage, or
+from *Help → Load videos from a folder*.
+
+**Unlocking:** the app shows the computer's number; on the website, `/admin/` →
+*Unlocked computers* → *Add* makes its code (`src/main/unlock.js` and the
+website's `apps/desktop_edition/unlock.py` do the same sums; change both together).
 
 **Unsigned Windows installers** show "Windows protected your PC" → *More info*
 → *Run anyway*. A code-signing certificate removes it: add secrets
 `WIN_CSC_LINK` (the .pfx as base64) and `WIN_CSC_KEY_PASSWORD`.
-
-**Copying to many computers:** the installer can be copied on a flash drive
-and installed anywhere; without a code it opens nothing, and each code only
-works on as many computers as it has seats.
 
 ## Try it on your own computer
 
@@ -110,7 +115,8 @@ Make a code on the website (`manage.py make_activation_codes --holder Test`) and
 | `main/server.js` | Answers every page and file from the lessons on disk; marks activities; keeps progress. |
 | `main/content.js` | Finds and unseals lessons (installed, plus downloaded updates). |
 | `main/marking.js` | The website's marking rules (`apps/echospell/marking.py`). Change both together. |
-| `main/licence.js` | Checks the signed licence offline: this computer, its levels, its end date. |
+| `main/unlock.js` | The computer's number and unlock codes, checked with no internet. |
+| `main/licence.js` | Checks a signed licence (online activation, or a computer that went online). |
 | `main/sync.js` | Checks in and downloads only the lessons that changed. |
 | `main/progress.js` | What the learner did, in the app's data folder. |
 | `ui/edition.css`, `ui/edition.js` | Added to every lesson page: hides online-only buttons, the top-right panel, results, today's date. |
