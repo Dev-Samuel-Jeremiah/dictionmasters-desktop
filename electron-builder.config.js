@@ -3,8 +3,10 @@
  * this: change app.config.json. See README.md.
  *
  *   normal   Windows 10/11 (64-bit) and Linux. The current Electron.
- *   legacy   Windows 7, 8 and 8.1 (32- and 64-bit). Electron 22, the last
- *            one that runs there. Build it with DM_LEGACY=1.
+ *   legacy   Windows 7, 8 and 8.1. Electron 22, the last one that runs
+ *            there. Build it with DM_LEGACY=1. 32-bit only: it runs on 32-
+ *            and 64-bit Windows alike, and an installer holding both copies
+ *            (each with the level's lessons) would pass Windows' 2 GB limit.
  *
  * The lessons in content/ (scripts/fetch-content.js) go into the installer
  * as they are, sealed: resources/content on the installed computer.
@@ -39,7 +41,7 @@ module.exports = {
   publish: null,
 
   win: {
-    target: [{ target: "nsis", arch: legacy ? ["x64", "ia32"] : ["x64"] }],
+    target: [{ target: "nsis", arch: legacy ? ["ia32"] : ["x64"] }],
     icon: "build/icon.png",
     artifactName: legacy ? `${name}-Setup-Windows7-8.\${ext}` : `${name}-Setup.\${ext}`,
   },

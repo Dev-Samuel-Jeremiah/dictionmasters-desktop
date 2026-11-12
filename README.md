@@ -67,7 +67,7 @@ For each level: **Actions → Build installers → Run workflow**, type the leve
 | Computer | File |
 |---|---|
 | Windows 10 and 11 | `DictionMasters-Level-1-Setup.exe` |
-| Windows 7, 8, 8.1 (32/64-bit) | `DictionMasters-Level-1-Setup-Windows7-8.exe` |
+| Windows 7, 8, 8.1 (32- and 64-bit: one 32-bit app runs on both) | `DictionMasters-Level-1-Setup-Windows7-8.exe` |
 | Ubuntu, Debian, Mint, Zorin | `DictionMasters-Level-1-linux-amd64.deb` |
 | Other Linux | `DictionMasters-Level-1-linux-x86_64.AppImage` |
 | (the website reads this) | `DictionMasters-Level-1-manifest.json` |
